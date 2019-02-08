@@ -23,6 +23,7 @@ class LearningAgent(Agent):
         ## TO DO ##
         ###########
         # Set any additional class parameters as needed
+        self.trials = 0
 
 
     def reset(self, destination=None, testing=False):
@@ -43,11 +44,9 @@ class LearningAgent(Agent):
             self.epsilon = 0.0
             self.alpha = 0.0
         else:
-            # self.epsilon = self.epsilon - 0.05 # Q6
-            self.epsilon = math.pow(self.alpha, len(self.Q))
-            # self.alpha = self.alpha - 0.01
-            # if self.alpha < 0:
-            #     self.alpha = 0.0
+            # self.epsilon = self.epsilon - 0.01 # Q6
+            self.trials += 1
+            self.epsilon = math.pow(0.99, self.trials)
 
         return None
 
@@ -71,7 +70,7 @@ class LearningAgent(Agent):
         # With the hand-engineered features, this learning process gets entirely negated.
         
         # Set 'state' as a tuple of relevant data for the agent        
-        state = (waypoint, inputs['light'], inputs['oncoming'])
+        state = (waypoint, inputs['light'], inputs['oncoming'], inputs['left'])
 
         return state
 
@@ -103,11 +102,12 @@ class LearningAgent(Agent):
         # When learning, check if the 'state' is not in the Q-table
         # If it is not, create a new dictionary for that state
         #   Then, for each action available, set the initial Q-value to 0.0
-        if not state in self.Q.keys():
-            qvalues = {}
-            for action in self.valid_actions:
-                qvalues[action] = 0.0
-            self.Q[state] = qvalues
+        if self.learning:
+            if not state in self.Q.keys():
+                qvalues = {}
+                for action in self.valid_actions:
+                    qvalues[action] = 0.0
+                self.Q[state] = qvalues
 
         return
 
@@ -152,7 +152,7 @@ class LearningAgent(Agent):
         # When learning, implement the value iteration update rule
         #   Use only the learning rate 'alpha' (do not use the discount factor 'gamma')
         if self.learning:
-            self.Q[state][action] = self.Q[state][action] + self.alpha * (reward)
+            self.Q[state][action] = self.Q[state][action] + self.alpha * (reward - self.Q[state][action])
 
         return
 
@@ -189,7 +189,7 @@ def run():
     #   learning   - set to True to force the driving agent to use Q-learning
     #    * epsilon - continuous value for the exploration factor, default is 1
     #    * alpha   - continuous value for the learning rate, default is 0.5
-    agent = env.create_agent(LearningAgent, learning=True, alpha=0.8, epsilon=0.95)
+    agent = env.create_agent(LearningAgent, learning=True, epsilon=1.0, alpha=0.9)
     
     ##############
     # Follow the driving agent
@@ -211,7 +211,7 @@ def run():
     # Flags:
     #   tolerance  - epsilon tolerance before beginning testing, default is 0.05 
     #   n_test     - discrete number of testing trials to perform, default is 0
-    sim.run(n_test=10, tolerance=0.05)
+    sim.run(n_test=10, tolerance=0.1)
 
 
 if __name__ == '__main__':
